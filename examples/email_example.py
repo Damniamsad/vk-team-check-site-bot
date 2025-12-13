@@ -3,8 +3,10 @@ import ssl
 from bot.bot import Bot
 from bot.handler import MessageHandler
 
+from config import Config
+
 # Конфигурация бота
-bot = Bot(token='001.0878256271.0341180444:1011949982',
+bot = Bot(token=Config.TEAMS_BOT_TOKEN,
           name='SiteAnalyzerBot',
           )
 

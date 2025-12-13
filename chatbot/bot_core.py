@@ -3,8 +3,8 @@ import logging
 from bot.bot import Bot
 from bot.handler import MessageHandler
 
+from chatbot.site_analyzer import SiteAnalyzer
 from config import Config
-from site_analyzer import SiteAnalyzer
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -92,7 +92,7 @@ def message_callback(bot, event):
 # Добавляем обработчик сообщений
 bot.dispatcher.add_handler(MessageHandler(callback=message_callback))
 
-if __name__ == "__main__":
+def main():
     logger.info("Бот запускается...")
     print("Бот анализатора сайтов запущен!")
     print("Используйте команду /check для анализа сайта")

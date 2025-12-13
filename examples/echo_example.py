@@ -1,7 +1,9 @@
 from bot.bot import Bot
 from bot.handler import MessageHandler
 
-TOKEN = "001.0878256271.0341180444:1011949982" #your token here
+from config import Config
+
+TOKEN = Config.TEAMS_BOT_TOKEN #your token here
 
 bot = Bot(token=TOKEN)
 
