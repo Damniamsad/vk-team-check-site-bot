@@ -6,9 +6,14 @@ from datetime import datetime, timedelta
 import re
 from urllib.parse import urlparse
 import logging
+import ssl
+import socket
+from urllib.parse import urlunparse
+
 # Настройка логирования
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
 
 class SiteAnalyzer:
     def __init__(self):
@@ -23,9 +28,8 @@ class SiteAnalyzer:
             if not self.is_valid_url(url):
                 return "❌ Ошибка: Некорректный URL"
 
-            # Добавляем протокол если нужно
-            if not url.startswith(('http://', 'https://')):
-                url = 'https://' + url
+            # Добавляем протокол если нужно и проверяем HTTPS
+            url = self.normalize_and_check_protocol(url)
 
             domain = self.extract_domain(url)
             logger.info(f"Начинаем анализ сайта: {domain}")
@@ -33,7 +37,10 @@ class SiteAnalyzer:
             # Очищаем предыдущие результаты
             self.results.clear()
 
-            # Выполняем проверки
+            # Проверка HTTPS (выполняется первой)
+            self.check_https_security(url, domain)
+
+            # Выполняем остальные проверки
             self.check_domain_age(domain)
 
             # Получаем контент сайта
@@ -47,7 +54,7 @@ class SiteAnalyzer:
                 self.check_builder(soup, url, response)
             except requests.RequestException as e:
                 logger.warning(f"Ошибка загрузки сайта: {e}")
-                self.results['Доступность'] = '🔴 Негатив (сайт недоступен)'
+                self.results['Доступность'] = f"🔴 Негатив (сайт недоступен) {e}"
 
             self.check_owner(domain)
             self.check_reviews(domain)
@@ -57,6 +64,182 @@ class SiteAnalyzer:
         except Exception as e:
             logger.error(f"Ошибка анализа: {e}")
             return f"❌ Ошибка при анализе сайта: {str(e)}"
+
+    def normalize_and_check_protocol(self, url):
+        """Нормализация URL и проверка протокола"""
+        # Если нет протокола, пробуем оба варианта
+        if not url.startswith(('http://', 'https://')):
+            # Сначала пробуем HTTPS
+            https_url = 'https://' + url
+            http_url = 'http://' + url
+
+            # Проверяем, доступен ли сайт по HTTPS
+            try:
+                test_response = requests.head(https_url, headers=self.headers, timeout=5, verify=True)
+                if test_response.status_code < 400:
+                    logger.info(f"Сайт доступен по HTTPS: {https_url}")
+                    return https_url
+            except:
+                pass
+
+            # Если HTTPS недоступен, пробуем HTTP
+            try:
+                test_response = requests.head(http_url, headers=self.headers, timeout=5)
+                if test_response.status_code < 400:
+                    logger.warning(f"Сайт доступен только по HTTP: {http_url}")
+                    return http_url
+            except:
+                pass
+
+            # Если оба не работают, по умолчанию используем HTTPS
+            logger.warning(f"Сайт не отвечает, используем HTTPS по умолчанию: {https_url}")
+            return https_url
+
+        return url
+
+    def check_https_security(self, url, domain):
+        """Проверка безопасности HTTPS соединения"""
+        try:
+            parsed_url = urlparse(url)
+            scheme = parsed_url.scheme.lower()
+
+            if scheme == 'https':
+                # Проверяем качество SSL/TLS сертификата
+                ssl_checks = self.check_ssl_certificate(domain)
+
+                if ssl_checks['valid']:
+                    # Дополнительные проверки для HTTPS
+                    score = 0
+                    details = []
+
+                    if ssl_checks['days_until_expiry'] > 30:
+                        score += 1
+                        details.append(f"сертификат действителен ещё {ssl_checks['days_until_expiry']} дней")
+                    else:
+                        details.append(f"⚠️ сертификат истекает через {ssl_checks['days_until_expiry']} дней")
+
+                    if ssl_checks['issuer_trusted']:
+                        score += 1
+                        details.append("доверенный издатель")
+                    else:
+                        details.append("⚠️ издатель не из доверенных")
+
+                    # Проверка редиректа с HTTP на HTTPS
+                    if self.check_http_to_https_redirect(domain):
+                        score += 1
+                        details.append("есть редирект с HTTP на HTTPS")
+                    else:
+                        details.append("нет редиректа с HTTP на HTTPS")
+
+                    # Проверка HSTS
+                    if self.check_hsts(domain):
+                        score += 1
+                        details.append("включен HSTS")
+
+                    if score >= 3:
+                        self.results['HTTPS безопасность'] = f'🟢 Не негатив ({", ".join(details)})'
+                    elif score >= 1:
+                        self.results['HTTPS безопасность'] = f'🟡 Негатив ({", ".join(details)})'
+                    else:
+                        self.results['HTTPS безопасность'] = f'🔴 Негатив ({", ".join(details)})'
+                else:
+                    self.results['HTTPS безопасность'] = f'🔴 Негатив (проблемы с SSL: {ssl_checks["error"]})'
+            else:
+                # HTTP сайт
+                # Проверяем, поддерживает ли сайт HTTPS
+                https_available = self.check_https_available(domain)
+
+                if https_available:
+                    self.results['HTTPS безопасность'] = '🔴 Негатив (сайт использует HTTP, но HTTPS доступен!)'
+                else:
+                    self.results['HTTPS безопасность'] = '🔴 Негатив (сайт использует незащищенный HTTP)'
+
+        except Exception as e:
+            logger.error(f"Ошибка проверки HTTPS: {e}")
+            self.results['HTTPS безопасность'] = f'🟡 Негатив (ошибка проверки: {str(e)[:50]})'
+
+    def check_ssl_certificate(self, domain):
+        """Проверка SSL сертификата"""
+        try:
+            # Убираем порт если есть
+            clean_domain = domain.split(':')[0]
+
+            context = ssl.create_default_context()
+            with socket.create_connection((clean_domain, 443), timeout=5) as sock:
+                with context.wrap_socket(sock, server_hostname=clean_domain) as ssock:
+                    cert = ssock.getpeercert()
+
+                    # Проверяем срок действия
+                    not_after_str = cert['notAfter']
+                    not_after = datetime.strptime(not_after_str, '%b %d %H:%M:%S %Y %Z')
+                    days_until_expiry = (not_after - datetime.now()).days
+
+                    # Проверяем издателя
+                    issuer = dict(x[0] for x in cert['issuer'])
+                    issuer_name = issuer.get('organizationName', 'Unknown')
+
+                    # Список доверенных издателей
+                    trusted_issuers = [
+                        'Let\'s Encrypt', 'DigiCert', 'GlobalSign',
+                        'Comodo', 'Sectigo', 'GoDaddy',
+                        'Amazon', 'Google Trust Services'
+                    ]
+
+                    issuer_trusted = any(trusted in issuer_name for trusted in trusted_issuers)
+
+                    return {
+                        'valid': True,
+                        'days_until_expiry': days_until_expiry,
+                        'issuer': issuer_name,
+                        'issuer_trusted': issuer_trusted,
+                        'not_after': not_after_str
+                    }
+
+        except ssl.SSLCertVerificationError as e:
+            return {'valid': False, 'error': f'Ошибка проверки сертификата: {str(e)}'}
+        except socket.timeout:
+            return {'valid': False, 'error': 'Таймаут подключения'}
+        except ConnectionRefusedError:
+            return {'valid': False, 'error': 'Подключение отклонено'}
+        except Exception as e:
+            return {'valid': False, 'error': f'Ошибка: {str(e)[:50]}'}
+
+    def check_https_available(self, domain):
+        """Проверяет, доступен ли сайт по HTTPS"""
+        try:
+            https_url = f"https://{domain}"
+            response = requests.head(https_url, headers=self.headers, timeout=5, verify=True)
+            return response.status_code < 400
+        except:
+            return False
+
+    def check_http_to_https_redirect(self, domain):
+        """Проверяет редирект с HTTP на HTTPS"""
+        try:
+            http_url = f"http://{domain}"
+            response = requests.get(http_url, headers=self.headers, timeout=5, allow_redirects=True)
+
+            # Проверяем, был ли редирект на HTTPS
+            for resp in response.history:
+                if resp.is_redirect and 'https://' in resp.headers.get('Location', ''):
+                    return True
+
+            # Проверяем финальный URL
+            final_url = response.url
+            return final_url.startswith('https://')
+        except:
+            return False
+
+    def check_hsts(self, domain):
+        """Проверяет наличие HSTS заголовка"""
+        try:
+            https_url = f"https://{domain}"
+            response = requests.head(https_url, headers=self.headers, timeout=5, verify=True)
+
+            hsts_header = response.headers.get('Strict-Transport-Security', '')
+            return 'max-age' in hsts_header.lower()
+        except:
+            return False
 
     def is_valid_url(self, url):
         """Проверка валидности URL"""
@@ -100,6 +283,7 @@ class SiteAnalyzer:
             logger.error(f"Ошибка WHOIS: {e}")
             self.results['Возраст домена'] = '🟡 Негатив (ошибка проверки)'
 
+    # ... остальные методы остаются без изменений ...
     def check_content_updates(self, soup, response):
         """Проверка обновлений контента"""
         try:

@@ -4,17 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6fe9a0a8-fbbf-4355-a8a9-0ad54e7e4b3e" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/chatbot/main.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/install.bat" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/start.bat" afterDir="false" />
+    <list default="true" id="6fe9a0a8-fbbf-4355-a8a9-0ad54e7e4b3e" name="Changes" comment="сделал возможность автономного запуска">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bot_core.py" beforeDir="false" afterPath="$PROJECT_DIR$/chatbot/bot_core.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/echo_example.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/echo_example.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/email_example.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/email_example.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/site_analyzer.py" beforeDir="false" afterPath="$PROJECT_DIR$/chatbot/site_analyzer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/chatbot/site_analyzer.py" beforeDir="false" afterPath="$PROJECT_DIR$/chatbot/site_analyzer.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -46,6 +38,7 @@
     "Python.config.executor": "Run",
     "Python.email_example.executor": "Run",
     "Python.email_sender_bot.executor": "Run",
+    "Python.main.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "git-widget-placeholder": "main",
@@ -63,7 +56,7 @@
       <recent name="C:\Users\dogma\PycharmProject\PythonProject\examples" />
     </key>
   </component>
-  <component name="RunManager">
+  <component name="RunManager" selected="Python.main">
     <configuration name="bot_core" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="PythonProject" />
       <option name="ENV_FILES" value="" />
@@ -86,8 +79,31 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="PythonProject" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/chatbot" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/chatbot/main.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.main" />
         <item itemvalue="Python.bot_core" />
       </list>
     </recent_temporary>
@@ -108,6 +124,19 @@
       <option name="presentableId" value="Default" />
       <updated>1765102887980</updated>
     </task>
+    <task id="LOCAL-00001" summary="сделал возможность автономного запуска">
+      <option name="closed" value="true" />
+      <created>1765638699942</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1765638699942</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="сделал возможность автономного запуска" />
+    <option name="LAST_COMMIT_MESSAGE" value="сделал возможность автономного запуска" />
   </component>
 </project>
